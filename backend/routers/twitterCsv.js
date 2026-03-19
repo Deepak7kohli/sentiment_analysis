@@ -46,6 +46,10 @@ async function twitterPred(req, res) {
             return res.status(500).send('An error occurred while uploading the file.');
         }
 
+        if (!req.file) {
+            return res.status(400).send('No file uploaded. Please select a CSV file.');
+        }
+
         const filePath = req.file.path;
         console.log("File uploaded successfully:", filePath);
 
