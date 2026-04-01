@@ -12,11 +12,32 @@ from nltk.stem.porter import PorterStemmer
 nltk.download("punkt")
 
 def main(file_path):
-    # Load the data
-    df = pd.read_csv(file_path)
-    df1 = df.tail(50)
-    df2 = df.head(50)
-    df = pd.concat([df1, df2])  # Limiting to the first 10 rows for testing
+    try:
+        if file_path.lower().endswith('.txt'):
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                lines = [line.strip() for line in f if line.strip()]
+            df = pd.DataFrame({'text_content': lines})
+            text_col = 'text_content'
+        else:
+            df = pd.read_csv(file_path)
+            text_col = None
+            for col in ['tweet', 'text', 'review', 'content', 'message', 'body', 'data']:
+                if col in df.columns:
+                    text_col = col
+                    break
+            if getattr(df, 'columns', None) is not None and not text_col:
+                for col in df.columns:
+                    if df[col].dtype == object:
+                        text_col = col
+                        break
+            if not text_col:
+                raise ValueError("Could not find a valid text column in the CSV.")
+
+        if len(df) > 100:
+            df = pd.concat([df.head(50), df.tail(50)])
+    except Exception as e:
+        print(json.dumps({'error': f"File Parse Error: {str(e)}"}))
+        sys.exit(0)
 
     # Load the models
     model = pickle.load(open("models/movie_word2vec.sav", "rb"))
@@ -70,7 +91,7 @@ def main(file_path):
 
     # Apply prediction to each row in the CSV
     predictions = []
-    for value in df['tweet']:  # Replace 'tweet' with the actual name of the column containing text data
+    for value in df[text_col].astype(str):
         result = predict(value)
         predictions.append(result)
 
@@ -79,7 +100,7 @@ def main(file_path):
     count_less_than_0_5 = sum(1 for p in predictions if p < 0.5)
 
     # Combine all text for word frequency analysis
-    all_text = ' '.join(df['tweet'])
+    all_text = ' '.join(df[text_col].astype(str))
     all_text = preprocess(all_text)
     word_list = all_text.split()
     word_counts = Counter(word_list)

@@ -24,10 +24,10 @@ const upload = multer({
     storage: storage,
     limits: { fileSize: 100 * 1024 * 1024 }, // Limit file size to 100MB
     fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'text/csv' || file.mimetype === 'application/vnd.ms-excel') {
+        if (file.mimetype === 'text/csv' || file.mimetype === 'application/vnd.ms-excel' || file.mimetype === 'text/plain') {
             cb(null, true); // Accept the file
         } else {
-            cb(new Error('Only CSV files are allowed')); // Reject the file
+            cb(new Error('Only CSV or TXT files are allowed')); // Reject the file
         }
     }
 }).single('file');
@@ -43,7 +43,7 @@ async function amazonPred(req, res) {
             return res.status(400).send(err.message);
         } else if (err) {
             console.log("General error:", err);
-            return res.status(500).send('An error occurred while uploading the file.');
+            return res.status(400).send(err.message || 'An error occurred while uploading the file.');
         }
 
         const filePath = req.file.path;
